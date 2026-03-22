@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useCallback, useMemo, useState } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -10,57 +11,44 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { PLAYER_CONFIG } from "@/lib/quest/constants";
-import { EVIL_ROLE_OPTIONS, GOOD_ROLE_OPTIONS } from "@/lib/quest/constants";
-import type {
-  EvilRoleName,
-  GoodRoleName,
-  MissionSubPhase,
-  Player,
-} from "@/lib/quest/constants";
-import {
-  alignmentForRole,
-  isGoodRole,
-  pickLeaderForMission,
-  shuffle,
-} from "@/lib/quest/utils";
+} from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+import { PLAYER_CONFIG } from '@/lib/quest/constants';
+import { EVIL_ROLE_OPTIONS, GOOD_ROLE_OPTIONS } from '@/lib/quest/constants';
+import type { EvilRoleName, GoodRoleName, MissionSubPhase, Player } from '@/lib/quest/constants';
+import { alignmentForRole, isGoodRole, pickLeaderForMission, shuffle } from '@/lib/quest/utils';
 
 const PLAYER_COUNTS = [5, 6, 7, 8, 9, 10] as const;
 
 export default function Home() {
-  const [playerCount, setPlayerCount] =
-    useState<(typeof PLAYER_COUNTS)[number]>(6);
+  const [playerCount, setPlayerCount] = useState<(typeof PLAYER_COUNTS)[number]>(6);
   const config = PLAYER_CONFIG[playerCount];
 
   const [goodRoles, setGoodRoles] = useState<GoodRoleName[]>(() =>
-    Array.from({ length: PLAYER_CONFIG[6].good }, () => "Loyal Servant"),
+    Array.from({ length: PLAYER_CONFIG[6].good }, () => 'Loyal Servant'),
   );
   const [evilRoles, setEvilRoles] = useState<EvilRoleName[]>(() =>
-    Array.from({ length: PLAYER_CONFIG[6].evil }, () => "Minion of Mordred"),
+    Array.from({ length: PLAYER_CONFIG[6].evil }, () => 'Minion of Mordred'),
   );
 
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [missionIndex, setMissionIndex] = useState(0);
-  const [leadersThisCycle, setLeadersThisCycle] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [leadersThisCycle, setLeadersThisCycle] = useState<Set<string>>(() => new Set());
   const [currentLeaderId, setCurrentLeaderId] = useState<string | null>(null);
-  const [missionSubPhase, setMissionSubPhase] =
-    useState<MissionSubPhase>("propose");
+  const [missionSubPhase, setMissionSubPhase] = useState<MissionSubPhase>('propose');
   const [teamIds, setTeamIds] = useState<Set<string>>(() => new Set());
-  const [votes, setVotes] = useState<Record<string, "success" | "fail">>({});
+  const [votes, setVotes] = useState<Record<string, 'success' | 'fail'>>({});
   const [missionResults, setMissionResults] = useState<
     { mission: number; passed: boolean; failCount: number }[]
   >([]);
@@ -85,7 +73,7 @@ export default function Home() {
     );
     setLeadersThisCycle(nextCycle);
     setCurrentLeaderId(leader);
-    setMissionSubPhase("propose");
+    setMissionSubPhase('propose');
     setTeamIds(new Set());
     setVotes({});
   }, [goodRoles, evilRoles]);
@@ -95,7 +83,7 @@ export default function Home() {
     setMissionIndex(0);
     setLeadersThisCycle(new Set());
     setCurrentLeaderId(null);
-    setMissionSubPhase("propose");
+    setMissionSubPhase('propose');
     setTeamIds(new Set());
     setVotes({});
     setMissionResults([]);
@@ -119,31 +107,28 @@ export default function Home() {
 
   const confirmTeam = useCallback(() => {
     if (teamIds.size !== teamSize || !players) return;
-    const initial: Record<string, "success" | "fail"> = {};
+    const initial: Record<string, 'success' | 'fail'> = {};
     for (const id of teamIds) {
       const p = players.find((x) => x.id === id);
       if (p && isGoodRole(p.name)) {
-        initial[id] = "success";
+        initial[id] = 'success';
       } else {
-        initial[id] = "success";
+        initial[id] = 'success';
       }
     }
     setVotes(initial);
-    setMissionSubPhase("play");
+    setMissionSubPhase('play');
   }, [teamIds, teamSize, players]);
 
   const resolveMission = useCallback(() => {
     if (!players) return;
     let failCount = 0;
     for (const id of teamIds) {
-      if (votes[id] === "fail") failCount += 1;
+      if (votes[id] === 'fail') failCount += 1;
     }
     const passed = failCount < failsRequired;
-    setMissionResults((r) => [
-      ...r,
-      { mission: missionIndex + 1, passed, failCount },
-    ]);
-    setMissionSubPhase("result");
+    setMissionResults((r) => [...r, { mission: missionIndex + 1, passed, failCount }]);
+    setMissionSubPhase('result');
   }, [players, teamIds, votes, failsRequired, missionIndex]);
 
   const advanceMission = useCallback(() => {
@@ -154,7 +139,7 @@ export default function Home() {
       leadersThisCycle,
     );
     setMissionIndex((m) => m + 1);
-    setMissionSubPhase("propose");
+    setMissionSubPhase('propose');
     setTeamIds(new Set());
     setVotes({});
     setCurrentLeaderId(leader);
@@ -166,20 +151,17 @@ export default function Home() {
     [players, currentLeaderId],
   );
 
-  const setupValid =
-    goodRoles.length === config.good && evilRoles.length === config.evil;
+  const setupValid = goodRoles.length === config.good && evilRoles.length === config.evil;
 
   return (
-    <div className="min-h-full flex flex-col bg-background">
+    <div className="bg-background flex min-h-full flex-col">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
         <header className="space-y-1">
-          <h1 className="font-heading text-2xl font-semibold tracking-tight">
-            Quest simulation
-          </h1>
+          <h1 className="font-heading text-2xl font-semibold tracking-tight">Quest simulation</h1>
           <p className="text-muted-foreground text-sm">
-            Configure roles, then run missions: each round a leader is picked at
-            random (no repeat until everyone has led once). Good roles always
-            play success; evil players may play success or fail.
+            Configure roles, then run missions: each round a leader is picked at random (no repeat
+            until everyone has led once). Good roles always play success; evil players may play
+            success or fail.
           </p>
         </header>
 
@@ -203,12 +185,8 @@ export default function Home() {
                   const n = Number(v) as (typeof PLAYER_COUNTS)[number];
                   setPlayerCount(n);
                   const { good, evil } = PLAYER_CONFIG[n];
-                  setGoodRoles(
-                    Array.from({ length: good }, () => "Loyal Servant"),
-                  );
-                  setEvilRoles(
-                    Array.from({ length: evil }, () => "Minion of Mordred"),
-                  );
+                  setGoodRoles(Array.from({ length: good }, () => 'Loyal Servant'));
+                  setEvilRoles(Array.from({ length: evil }, () => 'Minion of Mordred'));
                 }}
                 disabled={players !== null}
               >
@@ -228,9 +206,7 @@ export default function Home() {
                 <div className="flex flex-col gap-2">
                   {goodRoles.map((role, i) => (
                     <div key={`g-${i}`} className="flex items-center gap-2">
-                      <span className="text-muted-foreground w-10 text-xs">
-                        #{i + 1}
-                      </span>
+                      <span className="text-muted-foreground w-10 text-xs">#{i + 1}</span>
                       <Select
                         value={role}
                         onValueChange={(v) => {
@@ -263,9 +239,7 @@ export default function Home() {
                 <div className="flex flex-col gap-2">
                   {evilRoles.map((role, i) => (
                     <div key={`e-${i}`} className="flex items-center gap-2">
-                      <span className="text-muted-foreground w-10 text-xs">
-                        #{i + 1}
-                      </span>
+                      <span className="text-muted-foreground w-10 text-xs">#{i + 1}</span>
                       <Select
                         value={role}
                         onValueChange={(v) => {
@@ -321,7 +295,7 @@ export default function Home() {
                   {players.map((p) => (
                     <li
                       key={p.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border/80 px-3 py-2 text-sm"
+                      className="border-border/80 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
                     >
                       <span className="font-medium">{p.label}</span>
                       <span className="text-muted-foreground">{p.name}</span>
@@ -335,49 +309,41 @@ export default function Home() {
               <CardHeader>
                 <CardTitle>Mission {missionIndex + 1} of 5</CardTitle>
                 <CardDescription>
-                  Team size: {teamSize}. Fails required to sabotage:{" "}
-                  {failsRequired}.
+                  Team size: {teamSize}. Fails required to sabotage: {failsRequired}.
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex flex-col gap-6">
                 {leaderPlayer && (
-                  <div className="rounded-lg bg-muted/50 px-4 py-3 text-sm">
+                  <div className="bg-muted/50 rounded-lg px-4 py-3 text-sm">
                     <span className="text-muted-foreground">Leader: </span>
                     <span className="font-medium">{leaderPlayer.label}</span>
-                    <span className="text-muted-foreground">
-                      {" "}
-                      ({leaderPlayer.name})
-                    </span>
+                    <span className="text-muted-foreground"> ({leaderPlayer.name})</span>
                   </div>
                 )}
 
-                {missionSubPhase === "propose" && (
+                {missionSubPhase === 'propose' && (
                   <div className="space-y-3">
                     <Label>
                       Select exactly {teamSize} player
-                      {teamSize === 1 ? "" : "s"} for the mission
+                      {teamSize === 1 ? '' : 's'} for the mission
                     </Label>
                     <div className="flex flex-col gap-2">
                       {players.map((p) => (
                         <div
                           key={p.id}
-                          className="flex items-center gap-3 rounded-lg border border-transparent px-1 py-0.5 has-data-[state=checked]:border-border"
+                          className="has-data-[state=checked]:border-border flex items-center gap-3 rounded-lg border border-transparent px-1 py-0.5"
                         >
                           <Checkbox
                             id={`team-${p.id}`}
                             checked={teamIds.has(p.id)}
-                            onCheckedChange={(c) =>
-                              toggleTeamMember(p.id, c === true)
-                            }
+                            onCheckedChange={(c) => toggleTeamMember(p.id, c === true)}
                           />
                           <label
                             htmlFor={`team-${p.id}`}
                             className="flex flex-1 cursor-pointer items-center justify-between gap-2 text-sm"
                           >
                             <span>{p.label}</span>
-                            <span className="text-muted-foreground">
-                              {p.name}
-                            </span>
+                            <span className="text-muted-foreground">{p.name}</span>
                           </label>
                         </div>
                       ))}
@@ -385,21 +351,17 @@ export default function Home() {
                     <p className="text-muted-foreground text-xs">
                       Selected: {teamIds.size} / {teamSize}
                     </p>
-                    <Button
-                      onClick={confirmTeam}
-                      disabled={teamIds.size !== teamSize}
-                    >
+                    <Button onClick={confirmTeam} disabled={teamIds.size !== teamSize}>
                       Confirm team
                     </Button>
                   </div>
                 )}
 
-                {missionSubPhase === "play" && (
+                {missionSubPhase === 'play' && (
                   <div className="space-y-4">
                     <Label>Mission cards</Label>
                     <p className="text-muted-foreground text-xs">
-                      Loyal players must play success. Evil players may choose
-                      success or fail.
+                      Loyal players must play success. Evil players may choose success or fail.
                     </p>
                     <ul className="flex flex-col gap-4">
                       {[...teamIds].map((id) => {
@@ -409,39 +371,30 @@ export default function Home() {
                         return (
                           <li
                             key={id}
-                            className="flex flex-col gap-2 rounded-lg border border-border/80 p-3 sm:flex-row sm:items-center sm:justify-between"
+                            className="border-border/80 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
                           >
                             <div>
                               <div className="font-medium">{p.label}</div>
-                              <div className="text-muted-foreground text-xs">
-                                {p.name}
-                              </div>
+                              <div className="text-muted-foreground text-xs">{p.name}</div>
                             </div>
                             {good ? (
-                              <Badge variant="secondary">
-                                Success (forced)
-                              </Badge>
+                              <Badge variant="secondary">Success (forced)</Badge>
                             ) : (
                               <ToggleGroup
                                 type="single"
                                 variant="outline"
                                 spacing={0}
-                                value={votes[id] ?? "success"}
+                                value={votes[id] ?? 'success'}
                                 onValueChange={(v) => {
                                   if (!v) return;
                                   setVotes((prev) => ({
                                     ...prev,
-                                    [id]: v as "success" | "fail",
+                                    [id]: v as 'success' | 'fail',
                                   }));
                                 }}
                               >
-                                <ToggleGroupItem value="success">
-                                  Success
-                                </ToggleGroupItem>
-                                <ToggleGroupItem
-                                  value="fail"
-                                  className="text-destructive"
-                                >
+                                <ToggleGroupItem value="success">Success</ToggleGroupItem>
+                                <ToggleGroupItem value="fail" className="text-destructive">
                                   Fail
                                 </ToggleGroupItem>
                               </ToggleGroup>
@@ -450,13 +403,11 @@ export default function Home() {
                         );
                       })}
                     </ul>
-                    <Button onClick={resolveMission}>
-                      Reveal mission result
-                    </Button>
+                    <Button onClick={resolveMission}>Reveal mission result</Button>
                   </div>
                 )}
 
-                {missionSubPhase === "result" && (
+                {missionSubPhase === 'result' && (
                   <div className="space-y-4">
                     {(() => {
                       const last = missionResults[missionResults.length - 1];
@@ -465,18 +416,15 @@ export default function Home() {
                         <div
                           className={
                             last.passed
-                              ? "rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3"
-                              : "rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3"
+                              ? 'rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3'
+                              : 'border-destructive/30 bg-destructive/10 rounded-lg border px-4 py-3'
                           }
                         >
                           <p className="font-medium">
-                            {last.passed
-                              ? "Mission succeeded"
-                              : "Mission failed"}
+                            {last.passed ? 'Mission succeeded' : 'Mission failed'}
                           </p>
                           <p className="text-muted-foreground text-sm">
-                            Fail cards played: {last.failCount} (need{" "}
-                            {failsRequired} to fail)
+                            Fail cards played: {last.failCount} (need {failsRequired} to fail)
                           </p>
                         </div>
                       );
@@ -485,8 +433,7 @@ export default function Home() {
                       <Button onClick={advanceMission}>Next mission</Button>
                     ) : (
                       <p className="text-muted-foreground text-sm">
-                        Five missions complete. Reset or adjust setup to play
-                        again.
+                        Five missions complete. Reset or adjust setup to play again.
                       </p>
                     )}
                   </div>
@@ -503,15 +450,13 @@ export default function Home() {
                   <ol className="list-inside list-decimal space-y-1 text-sm">
                     {missionResults.map((r, i) => (
                       <li key={i}>
-                        Mission {r.mission}:{" "}
+                        Mission {r.mission}:{' '}
                         {r.passed ? (
-                          <span className="text-emerald-600 dark:text-emerald-400">
-                            success
-                          </span>
+                          <span className="text-emerald-600 dark:text-emerald-400">success</span>
                         ) : (
                           <span className="text-destructive">failed</span>
-                        )}{" "}
-                        ({r.failCount} fail{r.failCount === 1 ? "" : "s"})
+                        )}{' '}
+                        ({r.failCount} fail{r.failCount === 1 ? '' : 's'})
                       </li>
                     ))}
                   </ol>

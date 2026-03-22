@@ -1,8 +1,8 @@
-import { ROLE_CATALOG } from "./constants";
-import type { Alignment, GoodRoleId, RoleId } from "./constants";
+import { ROLE_CATALOG } from './constants';
+import type { Alignment, GoodRoleId, RoleId } from './constants';
 
 const GOOD_SET = new Set<GoodRoleId>(
-  ROLE_CATALOG.filter((e) => e.alignment === "good").map((e) => e.id),
+  ROLE_CATALOG.filter((e) => e.alignment === 'good').map((e) => e.id),
 );
 
 export function isGoodRole(role: RoleId): boolean {
@@ -10,7 +10,7 @@ export function isGoodRole(role: RoleId): boolean {
 }
 
 export function alignmentForRole(role: RoleId): Alignment {
-  return isGoodRole(role) ? "good" : "evil";
+  return isGoodRole(role) ? 'good' : 'evil';
 }
 
 export function shuffle<T>(items: T[]): T[] {
@@ -32,7 +32,7 @@ export function pickLeaderForMission(
   leadersThisCycle: Set<string>,
 ): { leader: string; nextCycle: Set<string> } {
   if (playerIds.length === 0) {
-    throw new Error("No players");
+    throw new Error('No players');
   }
   let cycle = new Set(leadersThisCycle);
   const notYet = playerIds.filter((id) => !cycle.has(id));
