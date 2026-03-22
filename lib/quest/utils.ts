@@ -1,5 +1,5 @@
 import { ROLE_CATALOG, alignment } from './constants';
-import type { Alignment, RoleName } from './constants';
+import type { Alignment, Player, RoleName } from './constants';
 
 const GOOD_SET = new Set<RoleName>(
   ROLE_CATALOG.filter((e) => e.alignment === alignment.enum.good).map((e) => e.name),
@@ -27,6 +27,39 @@ export function shuffle<T>(items: T[]): T[] {
  * When everyone has led once, the cycle resets. Returns the updated cycle
  * including the new leader.
  */
+/**
+ * How many evil players are on the mission team (full roster: evil see each other).
+ */
+export function countEvilOnMissionTeam(teamIds: Iterable<string>, players: Player[]): number {
+  let n = 0;
+  for (const id of teamIds) {
+    const p = players.find((x) => x.id === id);
+    if (p && !isGoodRole(p.name)) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Simulated mission card for one evil player from their perspective (known evil on team).
+ *
+ * - 1 fail required: sole evil on team always fails; otherwise 50% fail.
+ * - 2 fail required: exactly two evil on team always fail; otherwise always success.
+ */
+export function simulatedEvilMissionVote(
+  failsRequired: number,
+  evilCountOnTeam: number,
+): 'success' | 'fail' {
+  if (failsRequired === 1) {
+    if (evilCountOnTeam === 1) return 'fail';
+    return Math.random() < 0.5 ? 'fail' : 'success';
+  }
+  if (failsRequired === 2) {
+    if (evilCountOnTeam === 2) return 'fail';
+    return 'success';
+  }
+  return 'success';
+}
+
 export function pickLeaderForMission(
   playerIds: string[],
   leadersThisCycle: Set<string>,

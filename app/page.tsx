@@ -27,7 +27,14 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { PLAYER_CONFIG } from '@/lib/quest/constants';
 import { EVIL_ROLE_OPTIONS, GOOD_ROLE_OPTIONS } from '@/lib/quest/constants';
 import type { EvilRoleName, GoodRoleName, MissionSubPhase, Player } from '@/lib/quest/constants';
-import { alignmentForRole, isGoodRole, pickLeaderForMission, shuffle } from '@/lib/quest/utils';
+import {
+  alignmentForRole,
+  countEvilOnMissionTeam,
+  isGoodRole,
+  pickLeaderForMission,
+  shuffle,
+  simulatedEvilMissionVote,
+} from '@/lib/quest/utils';
 
 const PLAYER_COUNTS = [5, 6, 7, 8, 9, 10] as const;
 
@@ -107,18 +114,20 @@ export default function Home() {
 
   const confirmTeam = useCallback(() => {
     if (teamIds.size !== teamSize || !players) return;
+    const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
     const initial: Record<string, 'success' | 'fail'> = {};
     for (const id of teamIds) {
       const p = players.find((x) => x.id === id);
-      if (p && isGoodRole(p.name)) {
+      if (!p) continue;
+      if (isGoodRole(p.name)) {
         initial[id] = 'success';
       } else {
-        initial[id] = 'success';
+        initial[id] = simulatedEvilMissionVote(failsRequired, evilOnTeam);
       }
     }
     setVotes(initial);
     setMissionSubPhase('play');
-  }, [teamIds, teamSize, players]);
+  }, [teamIds, teamSize, players, failsRequired]);
 
   const resolveMission = useCallback(() => {
     if (!players) return;
@@ -361,7 +370,10 @@ export default function Home() {
                   <div className="space-y-4">
                     <Label>Mission cards</Label>
                     <p className="text-muted-foreground text-xs">
-                      Loyal players must play success. Evil players may choose success or fail.
+                      Loyal players always play success. Evil cards are simulated: on a 1-fail
+                      mission, the only evil on the team always fails; with more evil, each has a
+                      50% chance to fail. On a 2-fail mission, if exactly two evil are on the team
+                      they always fail; otherwise evil always play success.
                     </p>
                     <ul className="flex flex-col gap-4">
                       {[...teamIds].map((id) => {
@@ -379,25 +391,10 @@ export default function Home() {
                             </div>
                             {good ? (
                               <Badge variant="secondary">Success (forced)</Badge>
+                            ) : votes[id] === 'fail' ? (
+                              <Badge variant="destructive">Fail (simulated)</Badge>
                             ) : (
-                              <ToggleGroup
-                                type="single"
-                                variant="outline"
-                                spacing={0}
-                                value={votes[id] ?? 'success'}
-                                onValueChange={(v) => {
-                                  if (!v) return;
-                                  setVotes((prev) => ({
-                                    ...prev,
-                                    [id]: v as 'success' | 'fail',
-                                  }));
-                                }}
-                              >
-                                <ToggleGroupItem value="success">Success</ToggleGroupItem>
-                                <ToggleGroupItem value="fail" className="text-destructive">
-                                  Fail
-                                </ToggleGroupItem>
-                              </ToggleGroup>
+                              <Badge variant="secondary">Success (simulated)</Badge>
                             )}
                           </li>
                         );
