@@ -36,10 +36,10 @@ export default function Home() {
   const config = PLAYER_CONFIG[playerCount];
 
   const [goodRoles, setGoodRoles] = useState<GoodRoleName[]>(() =>
-    Array.from({ length: PLAYER_CONFIG[6].good }, () => 'Loyal Servant'),
+    Array.from({ length: PLAYER_CONFIG[6].good }, () => GOOD_ROLE_OPTIONS[0]),
   );
   const [evilRoles, setEvilRoles] = useState<EvilRoleName[]>(() =>
-    Array.from({ length: PLAYER_CONFIG[6].evil }, () => 'Minion of Mordred'),
+    Array.from({ length: PLAYER_CONFIG[6].evil }, () => EVIL_ROLE_OPTIONS[0]),
   );
 
   const [players, setPlayers] = useState<Player[] | null>(null);

@@ -1,16 +1,16 @@
-import { ROLE_CATALOG } from './constants';
-import type { Alignment, GoodRoleId, RoleId } from './constants';
+import { ROLE_CATALOG, alignment } from './constants';
+import type { Alignment, RoleName } from './constants';
 
-const GOOD_SET = new Set<GoodRoleId>(
-  ROLE_CATALOG.filter((e) => e.alignment === 'good').map((e) => e.id),
+const GOOD_SET = new Set<RoleName>(
+  ROLE_CATALOG.filter((e) => e.alignment === alignment.enum.good).map((e) => e.name),
 );
 
-export function isGoodRole(role: RoleId): boolean {
-  return GOOD_SET.has(role as GoodRoleId);
+export function isGoodRole(role: RoleName): boolean {
+  return GOOD_SET.has(role);
 }
 
-export function alignmentForRole(role: RoleId): Alignment {
-  return isGoodRole(role) ? 'good' : 'evil';
+export function alignmentForRole(role: RoleName): Alignment {
+  return isGoodRole(role) ? alignment.enum.good : alignment.enum.evil;
 }
 
 export function shuffle<T>(items: T[]): T[] {
