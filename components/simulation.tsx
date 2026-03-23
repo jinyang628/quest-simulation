@@ -57,6 +57,13 @@ export default function Simulation() {
   const teamSize = config.missionTeamSizes[missionIndex];
   const failsRequired = config.failsRequired[missionIndex];
 
+  const successCount = useMemo(
+    () => missionHistory.filter((m) => m.passed).length,
+    [missionHistory],
+  );
+  const failCount = missionHistory.length - successCount;
+  const gameShouldStop = successCount >= 3 || failCount >= 3;
+
   const startGame = useCallback(() => {
     const pool = shuffle([...goodRoles, ...evilRoles]);
     const next: Player[] = pool.map((name, i) => ({
@@ -144,7 +151,6 @@ export default function Simulation() {
     setTokenPlacementOptions(null);
     setSelectedTokenPlacementId(null);
 
-    const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
     const initial: Record<string, MissionResult> = {};
     for (const id of teamIds) {
       const p = players.find((x) => x.id === id);
@@ -152,7 +158,12 @@ export default function Simulation() {
 
       const baseVote: MissionResult = isGoodRole(p.name)
         ? missionResult.enum.success
-        : simulatedEvilMissionVote(failsRequired, evilOnTeam);
+        : simulatedEvilMissionVote(
+            failsRequired,
+            countEvilOnMissionTeam(teamIds, players),
+            players,
+            tokenId,
+          );
 
       if (id === tokenId) {
         // Token override rules:
@@ -197,6 +208,19 @@ export default function Simulation() {
     setSelectedTokenPlacementId(null);
 
     const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
+    const effectiveEvilOnTeam = (() => {
+      const tokenedPlayer = players.find((p) => p.id === tokenId);
+      // If the token is on an evil player who is NOT Morgan le Fey, other evil players
+      // treat them as "non-evil" for voting simulation (they'll be forced to succeed).
+      if (
+        tokenedPlayer &&
+        !isGoodRole(tokenedPlayer.name) &&
+        tokenedPlayer.name !== 'Morgan le Fey'
+      ) {
+        return Math.max(0, evilOnTeam - 1);
+      }
+      return evilOnTeam;
+    })();
     const initial: Record<string, MissionResult> = {};
     for (const id of teamIds) {
       const p = players.find((x) => x.id === id);
@@ -204,13 +228,9 @@ export default function Simulation() {
 
       const baseVote: MissionResult = isGoodRole(p.name)
         ? missionResult.enum.success
-        : simulatedEvilMissionVote(failsRequired, evilOnTeam);
+        : simulatedEvilMissionVote(failsRequired, effectiveEvilOnTeam, players, tokenId);
 
       if (id === tokenId) {
-        // Token override rules:
-        // - Tokened Youth must play fail.
-        // - Tokened Morgan le Fey can ignore the token and play normally.
-        // - Any other tokened player can only play success.
         if (p.name === 'Youth') {
           initial[id] = missionResult.enum.fail;
         } else if (p.name === 'Morgan le Fey') {
@@ -219,7 +239,6 @@ export default function Simulation() {
           initial[id] = missionResult.enum.success;
         }
       } else {
-        // Non-tokened players follow their normal allegiance rules.
         initial[id] = baseVote;
       }
     }
@@ -292,6 +311,7 @@ export default function Simulation() {
 
   const advanceMission = useCallback(() => {
     if (!players) return;
+    if (gameShouldStop) return;
     if (missionIndex >= 4) return;
     const { leader, nextCycle } = pickLeaderForMission(
       players.map((p) => p.id),
@@ -306,7 +326,7 @@ export default function Simulation() {
     setVotes({});
     setCurrentLeaderId(leader);
     setLeadersThisCycle(nextCycle);
-  }, [players, missionIndex, leadersThisCycle]);
+  }, [players, missionIndex, leadersThisCycle, gameShouldStop]);
 
   const leaderPlayer = useMemo(
     () => players?.find((p) => p.id === currentLeaderId) ?? null,

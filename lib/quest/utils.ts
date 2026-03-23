@@ -2,8 +2,9 @@ import {
   PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY,
   ROLE_CATALOG,
   alignment,
+  missionResult,
 } from './constants';
-import type { Alignment, Player, RoleName } from './constants';
+import type { Alignment, MissionResult, Player, RoleName } from './constants';
 
 const GOOD_SET = new Set<RoleName>(
   ROLE_CATALOG.filter((e) => e.alignment === alignment.enum.good).map((e) => e.name),
@@ -44,16 +45,24 @@ export function countEvilOnMissionTeam(teamIds: Iterable<string>, players: Playe
 export function simulatedEvilMissionVote(
   failsRequired: number,
   evilCountOnTeam: number,
-): 'success' | 'fail' {
+  players: Player[],
+  tokenId: string,
+): MissionResult {
+  const tokenedPlayer = players.find((p) => p.id === tokenId);
+  if (tokenedPlayer && !isGoodRole(tokenedPlayer.name) && tokenedPlayer.name !== 'Morgan le Fey') {
+    evilCountOnTeam = Math.max(0, evilCountOnTeam - 1);
+  }
+  if (evilCountOnTeam === 0) return missionResult.enum.success;
+
   if (failsRequired === 1) {
-    if (evilCountOnTeam === 1) return 'fail';
-    return Math.random() < 0.5 ? 'fail' : 'success';
+    if (evilCountOnTeam === 1) return missionResult.enum.fail;
+    return Math.random() < 0.5 ? missionResult.enum.fail : missionResult.enum.success;
   }
   if (failsRequired === 2) {
-    if (evilCountOnTeam === 2) return 'fail';
-    return 'success';
+    if (evilCountOnTeam === 2) return missionResult.enum.fail;
+    return missionResult.enum.success;
   }
-  return 'success';
+  return missionResult.enum.success;
 }
 
 export function pickLeaderForMission(

@@ -60,6 +60,11 @@ export default function TeamSelectionPanel({
   onResolveMissionClick,
   onNextMissionClick,
 }: TeamSelectionPanelProps) {
+  const successCount = missionHistory.filter((m) => m.passed).length;
+  const failCount = missionHistory.length - successCount;
+  const goodGuysWon = successCount >= 3;
+  const blindHunterHuntPhase = failCount >= 3;
+
   return (
     <Card>
       <CardHeader>
@@ -197,7 +202,6 @@ export default function TeamSelectionPanel({
                 const isTokened = tokenRecipientId === id;
 
                 const badge = (() => {
-                  // Tokened behavior overrides allegiance, except for Morgan (ignored token).
                   if (isTokened) {
                     const forcedCardBadge =
                       p.name === 'Youth' ? (
@@ -279,7 +283,13 @@ export default function TeamSelectionPanel({
                 </div>
               );
             })()}
-            {missionIndex < 4 ? (
+            {goodGuysWon ? (
+              <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                Good guys have won the game
+              </p>
+            ) : blindHunterHuntPhase ? (
+              <p className="text-destructive text-sm font-medium">Blind hunter hunt phase</p>
+            ) : missionIndex < 4 ? (
               <Button onClick={onNextMissionClick}>Next mission</Button>
             ) : (
               <p className="text-muted-foreground text-sm">
