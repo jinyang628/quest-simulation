@@ -17,6 +17,7 @@ interface TeamSelectionPanelProps {
   leaderPlayer: Player | null;
   teamIds: Set<string>;
   currentLeaderId: string | null;
+  tokenRecipientId: string | null;
   players: Player[];
   votes: Record<string, MissionResult>;
   getPlayerIdentity: (player: Player) => { role: string; alignmentHint: string | null };
@@ -35,6 +36,7 @@ export default function TeamSelectionPanel({
   leaderPlayer,
   teamIds,
   currentLeaderId,
+  tokenRecipientId,
   players,
   votes,
   getPlayerIdentity,
@@ -134,16 +136,43 @@ export default function TeamSelectionPanel({
           <div className="space-y-4">
             <Label>Mission cards</Label>
             <p className="text-muted-foreground text-xs">
-              Loyal players always play success. Evil cards are simulated: on a 1-fail mission, the
-              only evil on the team always fails; with more evil, each has a 50% chance to fail. On
-              a 2-fail mission, if exactly two evil are on the team they always fail; otherwise evil
-              always play success.
+              Mission leader places a magic token on one mission member. Tokened players usually
+              play success, with two exceptions: token on <code>Youth</code> forces fail, and token
+              on <code>Morgan le Fey</code> is ignored. Non-tokened players follow their normal
+              allegiance rules (good always success; evil is simulated).
             </p>
             <ul className="flex flex-col gap-4">
               {[...teamIds].map((id) => {
                 const p = players.find((x) => x.id === id);
                 if (!p) return null;
                 const good = isGoodRole(p.name);
+                const isTokened = tokenRecipientId === id;
+
+                const badge = (() => {
+                  // Tokened behavior overrides allegiance, except for Morgan (ignored token).
+                  if (isTokened) {
+                    if (p.name === 'Youth') {
+                      return <Badge variant="destructive">Fail (forced)</Badge>;
+                    }
+                    if (p.name === 'Morgan le Fey') {
+                      return votes[id] === 'fail' ? (
+                        <Badge variant="destructive">Fail (simulated)</Badge>
+                      ) : (
+                        <Badge variant="secondary">Success (simulated)</Badge>
+                      );
+                    }
+                    return <Badge variant="secondary">Success (forced)</Badge>;
+                  }
+
+                  // Non-tokened behavior.
+                  if (good) return <Badge variant="secondary">Success (forced)</Badge>;
+                  return votes[id] === 'fail' ? (
+                    <Badge variant="destructive">Fail (simulated)</Badge>
+                  ) : (
+                    <Badge variant="secondary">Success (simulated)</Badge>
+                  );
+                })();
+
                 return (
                   <li
                     key={id}
@@ -160,13 +189,7 @@ export default function TeamSelectionPanel({
                         })()}
                       </div>
                     </div>
-                    {good ? (
-                      <Badge variant="secondary">Success (forced)</Badge>
-                    ) : votes[id] === 'fail' ? (
-                      <Badge variant="destructive">Fail (simulated)</Badge>
-                    ) : (
-                      <Badge variant="secondary">Success (simulated)</Badge>
-                    )}
+                    {badge}
                   </li>
                 );
               })}

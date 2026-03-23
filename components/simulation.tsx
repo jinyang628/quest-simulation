@@ -18,6 +18,7 @@ import {
   countEvilOnMissionTeam,
   isGoodRole,
   pickLeaderForMission,
+  pickTokenRecipientForMissionLeader,
   shuffle,
   simulatedEvilMissionVote,
 } from '@/lib/quest/utils';
@@ -46,6 +47,7 @@ export default function Simulation() {
   const [firstLeaderId, setFirstLeaderId] = useState<string | null>(null);
   const [missionSubPhase, setMissionSubPhase] = useState<MissionSubPhase>('propose');
   const [teamIds, setTeamIds] = useState<Set<string>>(() => new Set());
+  const [tokenRecipientId, setTokenRecipientId] = useState<string | null>(null);
   const [votes, setVotes] = useState<Record<string, MissionResult>>({});
   const [missionHistory, setMissionHistory] = useState<MissionHistoryEntry[]>([]);
   const [perspectivePlayerId, setPerspectivePlayerId] = useState<string>('p-0');
@@ -73,6 +75,7 @@ export default function Simulation() {
     setFirstLeaderId(leader);
     setMissionSubPhase('propose');
     setTeamIds(new Set(leader ? [leader] : []));
+    setTokenRecipientId(null);
     setVotes({});
     setPerspectivePlayerId('p-0');
   }, [goodRoles, evilRoles]);
@@ -85,6 +88,7 @@ export default function Simulation() {
     setFirstLeaderId(null);
     setMissionSubPhase('propose');
     setTeamIds(new Set());
+    setTokenRecipientId(null);
     setVotes({});
     setMissionHistory([]);
     setPerspectivePlayerId('p-0');
@@ -109,20 +113,47 @@ export default function Simulation() {
 
   const confirmTeam = useCallback(() => {
     if (teamIds.size !== teamSize || !players) return;
+    if (!currentLeaderId) return;
+
+    const tokenId = pickTokenRecipientForMissionLeader({
+      leaderId: currentLeaderId,
+      teamIds,
+      players,
+      firstPlayerId: firstLeaderId,
+    });
+
+    setTokenRecipientId(tokenId);
+
     const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
     const initial: Record<string, MissionResult> = {};
     for (const id of teamIds) {
       const p = players.find((x) => x.id === id);
       if (!p) continue;
-      if (isGoodRole(p.name)) {
-        initial[id] = missionResult.enum.success;
+
+      const baseVote: MissionResult = isGoodRole(p.name)
+        ? missionResult.enum.success
+        : simulatedEvilMissionVote(failsRequired, evilOnTeam);
+
+      if (id === tokenId) {
+        // Token override rules:
+        // - Tokened Youth must play fail.
+        // - Tokened Morgan le Fey can ignore the token and play normally.
+        // - Any other tokened player can only play success.
+        if (p.name === 'Youth') {
+          initial[id] = missionResult.enum.fail;
+        } else if (p.name === 'Morgan le Fey') {
+          initial[id] = baseVote;
+        } else {
+          initial[id] = missionResult.enum.success;
+        }
       } else {
-        initial[id] = simulatedEvilMissionVote(failsRequired, evilOnTeam);
+        // Non-tokened players follow their normal allegiance rules.
+        initial[id] = baseVote;
       }
     }
     setVotes(initial);
     setMissionSubPhase('play');
-  }, [teamIds, teamSize, players, failsRequired]);
+  }, [teamIds, teamSize, players, failsRequired, currentLeaderId, firstLeaderId]);
 
   const resolveMission = useCallback(() => {
     if (!players) return;
@@ -180,6 +211,7 @@ export default function Simulation() {
     setMissionIndex((m) => m + 1);
     setMissionSubPhase('propose');
     setTeamIds(new Set(leader ? [leader] : []));
+    setTokenRecipientId(null);
     setVotes({});
     setCurrentLeaderId(leader);
     setLeadersThisCycle(nextCycle);
@@ -215,7 +247,7 @@ export default function Simulation() {
     return visible;
   }, [players, perspectivePlayer]);
 
-  const playerIdentity = useCallback(
+  const getPlayerIdentity = useCallback(
     (p: Player): { role: string; alignmentHint: string | null } => {
       if (perspectivePlayerId === 'moderator') {
         return { role: p.name, alignmentHint: null };
@@ -257,7 +289,7 @@ export default function Simulation() {
             />
             <RosterPanel
               players={players.map((p) => {
-                const identity = playerIdentity(p);
+                const identity = getPlayerIdentity(p);
                 return {
                   id: p.id,
                   label: p.label,
@@ -276,9 +308,10 @@ export default function Simulation() {
               leaderPlayer={leaderPlayer}
               teamIds={teamIds}
               currentLeaderId={currentLeaderId}
+              tokenRecipientId={tokenRecipientId}
               players={players}
               votes={votes}
-              getPlayerIdentity={playerIdentity}
+              getPlayerIdentity={getPlayerIdentity}
               toggleTeamMember={toggleTeamMember}
               onTeamConfirmClick={confirmTeam}
               onResolveMissionClick={resolveMission}
@@ -288,7 +321,7 @@ export default function Simulation() {
           <MissionHistoryPanel
             missionHistory={missionHistory}
             players={players}
-            getPlayerIdentity={playerIdentity}
+            getPlayerIdentity={getPlayerIdentity}
           />
         </div>
       )}
