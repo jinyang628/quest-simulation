@@ -7,13 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 import { PLAYER_CONFIG } from '@/lib/quest/constants';
 import { EVIL_ROLE_OPTIONS, GOOD_ROLE_OPTIONS } from '@/lib/quest/constants';
@@ -36,6 +29,7 @@ import {
 
 import GameSetupPanel from './game-setup-panel';
 import MissionHistoryPanel from './mission-history-panel';
+import PerspectivePanel from './perspective-panel';
 import Roster from './roster';
 
 export default function Simulation() {
@@ -256,34 +250,12 @@ export default function Simulation() {
       {players && (
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
           <div className="flex min-w-0 flex-1 flex-col gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Perspective</CardTitle>
-                <CardDescription>Choose whose information to display.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Select value={perspectivePlayerId} onValueChange={setPerspectivePlayerId}>
-                  <SelectTrigger className="w-full sm:max-w-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="moderator">Moderator (all roles visible)</SelectItem>
-                    {players.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {perspectivePlayer ? (
-                  <p className="text-muted-foreground text-xs">
-                    Viewing as {perspectivePlayer.label} ({perspectivePlayer.name})
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground text-xs">Viewing as moderator.</p>
-                )}
-              </CardContent>
-            </Card>
+            <PerspectivePanel
+              perspectivePlayerId={perspectivePlayerId}
+              players={players}
+              perspectivePlayer={perspectivePlayer}
+              onPlayerPerspectiveChange={setPerspectivePlayerId}
+            />
             <Roster
               players={players.map((p) => {
                 const identity = playerIdentity(p);
