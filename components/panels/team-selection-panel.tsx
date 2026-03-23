@@ -1,12 +1,10 @@
-'use client';
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 
-import type { MissionSubPhase, Player } from '@/lib/quest/constants';
+import type { MissionResult, MissionSubPhase, Player } from '@/lib/quest/constants';
 import { MissionHistoryEntry } from '@/lib/quest/types';
 import { isGoodRole } from '@/lib/quest/utils';
 
@@ -20,7 +18,7 @@ interface TeamSelectionPanelProps {
   teamIds: Set<string>;
   currentLeaderId: string | null;
   players: Player[];
-  votes: Record<string, 'success' | 'fail'>;
+  votes: Record<string, MissionResult>;
   getPlayerIdentity: (player: Player) => { role: string; alignmentHint: string | null };
   toggleTeamMember: (id: string, checked: boolean) => void;
   onTeamConfirmClick: () => void;

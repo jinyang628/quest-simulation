@@ -2,11 +2,12 @@
 
 import { useCallback, useMemo, useState } from 'react';
 
-import { PLAYER_CONFIG } from '@/lib/quest/constants';
+import { PLAYER_CONFIG, missionResult } from '@/lib/quest/constants';
 import { EVIL_ROLE_OPTIONS, GOOD_ROLE_OPTIONS } from '@/lib/quest/constants';
 import type {
   EvilRoleName,
   GoodRoleName,
+  MissionResult,
   MissionSubPhase,
   PLAYER_COUNTS,
   Player,
@@ -45,7 +46,7 @@ export default function Simulation() {
   const [firstLeaderId, setFirstLeaderId] = useState<string | null>(null);
   const [missionSubPhase, setMissionSubPhase] = useState<MissionSubPhase>('propose');
   const [teamIds, setTeamIds] = useState<Set<string>>(() => new Set());
-  const [votes, setVotes] = useState<Record<string, 'success' | 'fail'>>({});
+  const [votes, setVotes] = useState<Record<string, MissionResult>>({});
   const [missionHistory, setMissionHistory] = useState<MissionHistoryEntry[]>([]);
   const [perspectivePlayerId, setPerspectivePlayerId] = useState<string>('p-0');
 
@@ -109,12 +110,12 @@ export default function Simulation() {
   const confirmTeam = useCallback(() => {
     if (teamIds.size !== teamSize || !players) return;
     const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
-    const initial: Record<string, 'success' | 'fail'> = {};
+    const initial: Record<string, MissionResult> = {};
     for (const id of teamIds) {
       const p = players.find((x) => x.id === id);
       if (!p) continue;
       if (isGoodRole(p.name)) {
-        initial[id] = 'success';
+        initial[id] = missionResult.enum.success;
       } else {
         initial[id] = simulatedEvilMissionVote(failsRequired, evilOnTeam);
       }
@@ -142,7 +143,10 @@ export default function Simulation() {
     for (const id of orderedTeamIds) {
       const p = players.find((x) => x.id === id);
       if (!p) continue;
-      const card = votes[id] === 'fail' ? 'fail' : 'success';
+      const card =
+        votes[id] === missionResult.enum.fail
+          ? missionResult.enum.fail
+          : missionResult.enum.success;
       team.push({ id: p.id, label: p.label, name: p.name, card });
     }
     setMissionHistory((r) => [
