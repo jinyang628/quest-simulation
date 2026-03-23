@@ -141,3 +141,66 @@ export function pickTokenRecipientForMissionLeader({
     }
   }
 }
+
+export function getTokenRecipientOptionsForMissionLeader({
+  leaderId,
+  teamIds,
+  players,
+  firstPlayerId,
+}: {
+  leaderId: string | null;
+  teamIds: Set<string>;
+  players: Player[];
+  firstPlayerId?: string | null;
+}): string[] {
+  if (!leaderId) {
+    throw new Error('No mission leader to place magic token');
+  }
+
+  const teamPlayers = players.filter((p) => teamIds.has(p.id));
+  const leader = teamPlayers.find((p) => p.id === leaderId);
+  if (!leader) {
+    throw new Error('Leader must be on the mission team');
+  }
+
+  const otherIds = teamPlayers.filter((p) => p.id !== leaderId).map((p) => p.id);
+
+  // If the leader is the only team member, the token has nowhere else to go.
+  if (otherIds.length === 0) return [leaderId];
+
+  switch (leader.name) {
+    case 'Youth':
+      return [...otherIds];
+
+    case 'Loyal Servant':
+      // Loyal Servant normally token other, but can also token himself (deviation).
+      return [leaderId, ...otherIds];
+
+    case 'Cleric': {
+      // Cleric: will not token anyone he knows is good.
+      // He can also sometimes token himself (deviation).
+      let eligibleOtherIds = otherIds;
+      if (firstPlayerId) {
+        const knownPlayer = teamPlayers.find((p) => p.id === firstPlayerId);
+        if (knownPlayer && isGoodRole(knownPlayer.name)) {
+          eligibleOtherIds = otherIds.filter((id) => id !== firstPlayerId);
+        }
+      }
+
+      // If all "someone else" options were excluded, fall back to himself.
+      if (eligibleOtherIds.length === 0) return [leaderId];
+
+      return [leaderId, ...eligibleOtherIds];
+    }
+
+    default: {
+      // Evil roles: always token someone else.
+      if (!isGoodRole(leader.name)) {
+        return [...otherIds];
+      }
+
+      // Any other good role: can token self or someone else (deviation).
+      return [leaderId, ...otherIds];
+    }
+  }
+}

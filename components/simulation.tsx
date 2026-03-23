@@ -16,6 +16,7 @@ import { MissionHistoryEntry } from '@/lib/quest/types';
 import {
   alignmentForRole,
   countEvilOnMissionTeam,
+  getTokenRecipientOptionsForMissionLeader,
   isGoodRole,
   pickLeaderForMission,
   pickTokenRecipientForMissionLeader,
@@ -48,6 +49,8 @@ export default function Simulation() {
   const [missionSubPhase, setMissionSubPhase] = useState<MissionSubPhase>('propose');
   const [teamIds, setTeamIds] = useState<Set<string>>(() => new Set());
   const [tokenRecipientId, setTokenRecipientId] = useState<string | null>(null);
+  const [tokenPlacementOptions, setTokenPlacementOptions] = useState<string[] | null>(null);
+  const [selectedTokenPlacementId, setSelectedTokenPlacementId] = useState<string | null>(null);
   const [votes, setVotes] = useState<Record<string, MissionResult>>({});
   const [missionHistory, setMissionHistory] = useState<MissionHistoryEntry[]>([]);
   const [perspectivePlayerId, setPerspectivePlayerId] = useState<string>('p-0');
@@ -76,6 +79,8 @@ export default function Simulation() {
     setMissionSubPhase('propose');
     setTeamIds(new Set(leader ? [leader] : []));
     setTokenRecipientId(null);
+    setTokenPlacementOptions(null);
+    setSelectedTokenPlacementId(null);
     setVotes({});
     setPerspectivePlayerId('p-0');
   }, [goodRoles, evilRoles]);
@@ -89,6 +94,8 @@ export default function Simulation() {
     setMissionSubPhase('propose');
     setTeamIds(new Set());
     setTokenRecipientId(null);
+    setTokenPlacementOptions(null);
+    setSelectedTokenPlacementId(null);
     setVotes({});
     setMissionHistory([]);
     setPerspectivePlayerId('p-0');
@@ -115,6 +122,18 @@ export default function Simulation() {
     if (teamIds.size !== teamSize || !players) return;
     if (!currentLeaderId) return;
 
+    const isPerspectiveLeader =
+      perspectivePlayerId !== 'moderator' && perspectivePlayerId === currentLeaderId;
+
+    if (isPerspectiveLeader) {
+      setTokenRecipientId(null);
+      setTokenPlacementOptions([...teamIds]);
+      setSelectedTokenPlacementId([...teamIds][0] ?? null);
+      setVotes({});
+      setMissionSubPhase('token');
+      return;
+    }
+
     const tokenId = pickTokenRecipientForMissionLeader({
       leaderId: currentLeaderId,
       teamIds,
@@ -123,6 +142,8 @@ export default function Simulation() {
     });
 
     setTokenRecipientId(tokenId);
+    setTokenPlacementOptions(null);
+    setSelectedTokenPlacementId(null);
 
     const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
     const initial: Record<string, MissionResult> = {};
@@ -153,7 +174,67 @@ export default function Simulation() {
     }
     setVotes(initial);
     setMissionSubPhase('play');
-  }, [teamIds, teamSize, players, failsRequired, currentLeaderId, firstLeaderId]);
+  }, [
+    teamIds,
+    teamSize,
+    players,
+    failsRequired,
+    currentLeaderId,
+    firstLeaderId,
+    perspectivePlayerId,
+  ]);
+
+  const confirmTokenPlacement = useCallback(() => {
+    if (!players) return;
+    if (!currentLeaderId) return;
+    if (!tokenPlacementOptions) return;
+    if (!selectedTokenPlacementId) return;
+    if (!teamIds.has(selectedTokenPlacementId)) return;
+
+    const tokenId = selectedTokenPlacementId;
+
+    setTokenRecipientId(tokenId);
+    setTokenPlacementOptions(null);
+    setSelectedTokenPlacementId(null);
+
+    const evilOnTeam = countEvilOnMissionTeam(teamIds, players);
+    const initial: Record<string, MissionResult> = {};
+    for (const id of teamIds) {
+      const p = players.find((x) => x.id === id);
+      if (!p) continue;
+
+      const baseVote: MissionResult = isGoodRole(p.name)
+        ? missionResult.enum.success
+        : simulatedEvilMissionVote(failsRequired, evilOnTeam);
+
+      if (id === tokenId) {
+        // Token override rules:
+        // - Tokened Youth must play fail.
+        // - Tokened Morgan le Fey can ignore the token and play normally.
+        // - Any other tokened player can only play success.
+        if (p.name === 'Youth') {
+          initial[id] = missionResult.enum.fail;
+        } else if (p.name === 'Morgan le Fey') {
+          initial[id] = baseVote;
+        } else {
+          initial[id] = missionResult.enum.success;
+        }
+      } else {
+        // Non-tokened players follow their normal allegiance rules.
+        initial[id] = baseVote;
+      }
+    }
+
+    setVotes(initial);
+    setMissionSubPhase('play');
+  }, [
+    players,
+    currentLeaderId,
+    tokenPlacementOptions,
+    selectedTokenPlacementId,
+    teamIds,
+    failsRequired,
+  ]);
 
   const resolveMission = useCallback(() => {
     if (!players) return;
@@ -212,6 +293,8 @@ export default function Simulation() {
     setMissionSubPhase('propose');
     setTeamIds(new Set(leader ? [leader] : []));
     setTokenRecipientId(null);
+    setTokenPlacementOptions(null);
+    setSelectedTokenPlacementId(null);
     setVotes({});
     setCurrentLeaderId(leader);
     setLeadersThisCycle(nextCycle);
@@ -309,11 +392,15 @@ export default function Simulation() {
               teamIds={teamIds}
               currentLeaderId={currentLeaderId}
               tokenRecipientId={tokenRecipientId}
+              tokenPlacementOptions={tokenPlacementOptions}
+              selectedTokenPlacementId={selectedTokenPlacementId}
               players={players}
               votes={votes}
               getPlayerIdentity={getPlayerIdentity}
               toggleTeamMember={toggleTeamMember}
               onTeamConfirmClick={confirmTeam}
+              onTokenPlacementSelectionChange={setSelectedTokenPlacementId}
+              onTokenPlacementConfirmClick={confirmTokenPlacement}
               onResolveMissionClick={resolveMission}
               onNextMissionClick={advanceMission}
             />

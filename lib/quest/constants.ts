@@ -90,6 +90,6 @@ export type Player = {
   alignment: Alignment;
 };
 
-export type MissionSubPhase = 'propose' | 'play' | 'result';
+export type MissionSubPhase = 'propose' | 'token' | 'play' | 'result';
 
 export const PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY = 0.1;

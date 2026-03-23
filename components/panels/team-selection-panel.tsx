@@ -3,6 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 import type { MissionResult, MissionSubPhase, Player } from '@/lib/quest/constants';
 import { MissionHistoryEntry } from '@/lib/quest/types';
@@ -18,11 +25,15 @@ interface TeamSelectionPanelProps {
   teamIds: Set<string>;
   currentLeaderId: string | null;
   tokenRecipientId: string | null;
+  tokenPlacementOptions: string[] | null;
+  selectedTokenPlacementId: string | null;
   players: Player[];
   votes: Record<string, MissionResult>;
   getPlayerIdentity: (player: Player) => { role: string; alignmentHint: string | null };
   toggleTeamMember: (id: string, checked: boolean) => void;
   onTeamConfirmClick: () => void;
+  onTokenPlacementSelectionChange: (tokenRecipientId: string) => void;
+  onTokenPlacementConfirmClick: () => void;
   onResolveMissionClick: () => void;
   onNextMissionClick: () => void;
 }
@@ -37,11 +48,15 @@ export default function TeamSelectionPanel({
   teamIds,
   currentLeaderId,
   tokenRecipientId,
+  tokenPlacementOptions,
+  selectedTokenPlacementId,
   players,
   votes,
   getPlayerIdentity,
   toggleTeamMember,
   onTeamConfirmClick,
+  onTokenPlacementSelectionChange,
+  onTokenPlacementConfirmClick,
   onResolveMissionClick,
   onNextMissionClick,
 }: TeamSelectionPanelProps) {
@@ -132,15 +147,48 @@ export default function TeamSelectionPanel({
           </div>
         )}
 
+        {missionSubPhase === 'token' && (
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Place magic token</Label>
+              <p className="text-muted-foreground text-xs">
+                Choose who the mission leader places the magic token on.
+              </p>
+            </div>
+
+            <Select
+              value={selectedTokenPlacementId ?? undefined}
+              onValueChange={(v) => onTokenPlacementSelectionChange(v)}
+            >
+              <SelectTrigger className="w-full sm:max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[...(tokenPlacementOptions ?? [])].map((id) => {
+                  const p = players.find((x) => x.id === id);
+                  if (!p) return null;
+                  const identity = getPlayerIdentity(p);
+                  const roleText = identity.alignmentHint
+                    ? `${identity.role} (${identity.alignmentHint})`
+                    : identity.role;
+                  return (
+                    <SelectItem key={id} value={id}>
+                      {p.label} - {roleText}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            <Button onClick={onTokenPlacementConfirmClick} disabled={!selectedTokenPlacementId}>
+              Confirm token placement
+            </Button>
+          </div>
+        )}
+
         {missionSubPhase === 'play' && (
           <div className="space-y-4">
             <Label>Mission cards</Label>
-            <p className="text-muted-foreground text-xs">
-              Mission leader places a magic token on one mission member. Tokened players usually
-              play success, with two exceptions: token on <code>Youth</code> forces fail, and token
-              on <code>Morgan le Fey</code> is ignored. Non-tokened players follow their normal
-              allegiance rules (good always success; evil is simulated).
-            </p>
             <ul className="flex flex-col gap-4">
               {[...teamIds].map((id) => {
                 const p = players.find((x) => x.id === id);
