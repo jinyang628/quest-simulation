@@ -6,7 +6,7 @@ interface RosterProps {
   players: { id: string; label: string; roleLabel: string }[];
 }
 
-export default function Roster({ players }: RosterProps) {
+export default function RosterPanel({ players }: RosterProps) {
   return (
     <Card>
       <CardHeader>
