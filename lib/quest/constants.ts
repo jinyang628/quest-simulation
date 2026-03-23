@@ -4,8 +4,10 @@ export const alignment = z.enum(['good', 'evil']);
 
 export type Alignment = z.infer<typeof alignment>;
 
+export const PLAYER_COUNTS = [5, 6, 7, 8, 9, 10] as const;
+
 export const PLAYER_CONFIG: Record<
-  5 | 6 | 7 | 8 | 9 | 10,
+  (typeof PLAYER_COUNTS)[number],
   {
     good: number;
     evil: number;
