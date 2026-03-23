@@ -46,8 +46,8 @@ type MissionHistoryEntry = {
   failCount: number;
   successCount: number;
   failsRequired: number;
-  leader: { label: string; name: string } | null;
-  team: { label: string; name: string; card: 'success' | 'fail' }[];
+  leader: { id: string; label: string; name: string } | null;
+  team: { id: string; label: string; name: string; card: 'success' | 'fail' }[];
 };
 
 export default function Simulation() {
@@ -65,10 +65,12 @@ export default function Simulation() {
   const [missionIndex, setMissionIndex] = useState(0);
   const [leadersThisCycle, setLeadersThisCycle] = useState<Set<string>>(() => new Set());
   const [currentLeaderId, setCurrentLeaderId] = useState<string | null>(null);
+  const [firstLeaderId, setFirstLeaderId] = useState<string | null>(null);
   const [missionSubPhase, setMissionSubPhase] = useState<MissionSubPhase>('propose');
   const [teamIds, setTeamIds] = useState<Set<string>>(() => new Set());
   const [votes, setVotes] = useState<Record<string, 'success' | 'fail'>>({});
   const [missionHistory, setMissionHistory] = useState<MissionHistoryEntry[]>([]);
+  const [perspectivePlayerId, setPerspectivePlayerId] = useState<string>('p-0');
 
   const teamSize = config.missionTeamSizes[missionIndex];
   const failsRequired = config.failsRequired[missionIndex];
@@ -90,9 +92,11 @@ export default function Simulation() {
     );
     setLeadersThisCycle(nextCycle);
     setCurrentLeaderId(leader);
+    setFirstLeaderId(leader);
     setMissionSubPhase('propose');
     setTeamIds(new Set(leader ? [leader] : []));
     setVotes({});
+    setPerspectivePlayerId('p-0');
   }, [goodRoles, evilRoles]);
 
   const resetToSetup = useCallback(() => {
@@ -100,10 +104,12 @@ export default function Simulation() {
     setMissionIndex(0);
     setLeadersThisCycle(new Set());
     setCurrentLeaderId(null);
+    setFirstLeaderId(null);
     setMissionSubPhase('propose');
     setTeamIds(new Set());
     setVotes({});
     setMissionHistory([]);
+    setPerspectivePlayerId('p-0');
   }, []);
 
   const toggleTeamMember = useCallback(
@@ -160,7 +166,7 @@ export default function Simulation() {
       const p = players.find((x) => x.id === id);
       if (!p) continue;
       const card = votes[id] === 'fail' ? 'fail' : 'success';
-      team.push({ label: p.label, name: p.name, card });
+      team.push({ id: p.id, label: p.label, name: p.name, card });
     }
     setMissionHistory((r) => [
       ...r,
@@ -171,7 +177,11 @@ export default function Simulation() {
         successCount,
         failsRequired,
         leader: leaderPlayerResolved
-          ? { label: leaderPlayerResolved.label, name: leaderPlayerResolved.name }
+          ? {
+              id: leaderPlayerResolved.id,
+              label: leaderPlayerResolved.label,
+              name: leaderPlayerResolved.name,
+            }
           : null,
         team,
       },
@@ -197,6 +207,47 @@ export default function Simulation() {
   const leaderPlayer = useMemo(
     () => players?.find((p) => p.id === currentLeaderId) ?? null,
     [players, currentLeaderId],
+  );
+  const perspectivePlayer = useMemo(
+    () => players?.find((p) => p.id === perspectivePlayerId) ?? null,
+    [players, perspectivePlayerId],
+  );
+
+  const visibleRoleIds = useMemo(() => {
+    const visible = new Set<string>();
+    if (!players || !perspectivePlayer) return visible;
+    visible.add(perspectivePlayer.id);
+    if (
+      perspectivePlayer.name === 'Minion of Mordred' ||
+      perspectivePlayer.name === 'Morgan le Fey'
+    ) {
+      for (const p of players) {
+        if (
+          p.name === 'Minion of Mordred' ||
+          p.name === 'Morgan le Fey' ||
+          p.name === 'Blind Hunter'
+        ) {
+          visible.add(p.id);
+        }
+      }
+    }
+    return visible;
+  }, [players, perspectivePlayer]);
+
+  const playerIdentity = useCallback(
+    (p: Player): { role: string; alignmentHint: string | null } => {
+      if (perspectivePlayerId === 'moderator') {
+        return { role: p.name, alignmentHint: null };
+      }
+      if (visibleRoleIds.has(p.id)) {
+        return { role: p.name, alignmentHint: null };
+      }
+      if (perspectivePlayer?.name === 'Cleric' && firstLeaderId === p.id) {
+        return { role: 'Unknown role', alignmentHint: p.alignment };
+      }
+      return { role: 'Unknown role', alignmentHint: null };
+    },
+    [perspectivePlayerId, visibleRoleIds, perspectivePlayer, firstLeaderId],
   );
 
   const setupValid = goodRoles.length === config.good && evilRoles.length === config.evil;
@@ -322,7 +373,46 @@ export default function Simulation() {
       {players && (
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
           <div className="flex min-w-0 flex-1 flex-col gap-6">
-            <Roster players={players} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Perspective</CardTitle>
+                <CardDescription>Choose whose information to display.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Select value={perspectivePlayerId} onValueChange={setPerspectivePlayerId}>
+                  <SelectTrigger className="w-full sm:max-w-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="moderator">Moderator (all roles visible)</SelectItem>
+                    {players.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {perspectivePlayer ? (
+                  <p className="text-muted-foreground text-xs">
+                    Viewing as {perspectivePlayer.label} ({perspectivePlayer.name})
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground text-xs">Viewing as moderator.</p>
+                )}
+              </CardContent>
+            </Card>
+            <Roster
+              players={players.map((p) => {
+                const identity = playerIdentity(p);
+                return {
+                  id: p.id,
+                  label: p.label,
+                  roleLabel: identity.alignmentHint
+                    ? `${identity.role} (${identity.alignmentHint})`
+                    : identity.role,
+                };
+              })}
+            />
             <Card>
               <CardHeader>
                 <CardTitle>Mission {missionIndex + 1} of 5</CardTitle>
@@ -335,7 +425,17 @@ export default function Simulation() {
                   <div className="bg-muted/50 rounded-lg px-4 py-3 text-sm">
                     <span className="text-muted-foreground">Leader: </span>
                     <span className="font-medium">{leaderPlayer.label}</span>
-                    <span className="text-muted-foreground"> ({leaderPlayer.name})</span>
+                    <span className="text-muted-foreground">
+                      {' '}
+                      (
+                      {(() => {
+                        const identity = playerIdentity(leaderPlayer);
+                        return identity.alignmentHint
+                          ? `${identity.role} (${identity.alignmentHint})`
+                          : identity.role;
+                      })()}
+                      )
+                    </span>
                   </div>
                 )}
 
@@ -377,7 +477,14 @@ export default function Simulation() {
                                   </span>
                                 ) : null}
                               </span>
-                              <span className="text-muted-foreground">{p.name}</span>
+                              <span className="text-muted-foreground">
+                                {(() => {
+                                  const identity = playerIdentity(p);
+                                  return identity.alignmentHint
+                                    ? `${identity.role} (${identity.alignmentHint})`
+                                    : identity.role;
+                                })()}
+                              </span>
                             </label>
                           </div>
                         );
@@ -413,7 +520,14 @@ export default function Simulation() {
                           >
                             <div>
                               <div className="font-medium">{p.label}</div>
-                              <div className="text-muted-foreground text-xs">{p.name}</div>
+                              <div className="text-muted-foreground text-xs">
+                                {(() => {
+                                  const identity = playerIdentity(p);
+                                  return identity.alignmentHint
+                                    ? `${identity.role} (${identity.alignmentHint})`
+                                    : identity.role;
+                                })()}
+                              </div>
                             </div>
                             {good ? (
                               <Badge variant="secondary">Success (forced)</Badge>
@@ -498,7 +612,19 @@ export default function Simulation() {
                           {entry.leader ? (
                             <>
                               {entry.leader.label}
-                              <span className="text-muted-foreground"> ({entry.leader.name})</span>
+                              <span className="text-muted-foreground">
+                                {' '}
+                                (
+                                {(() => {
+                                  const leader = players.find((p) => p.id === entry.leader?.id);
+                                  if (!leader) return 'Unknown role';
+                                  const identity = playerIdentity(leader);
+                                  return identity.alignmentHint
+                                    ? `${identity.role} (${identity.alignmentHint})`
+                                    : identity.role;
+                                })()}
+                                )
+                              </span>
                             </>
                           ) : (
                             '—'
@@ -517,7 +643,19 @@ export default function Simulation() {
                             >
                               <span className="min-w-0 leading-snug">
                                 <span className="text-foreground font-medium">{m.label}</span>
-                                <span className="text-muted-foreground"> ({m.name})</span>
+                                <span className="text-muted-foreground">
+                                  {' '}
+                                  (
+                                  {(() => {
+                                    const member = players.find((p) => p.id === m.id);
+                                    if (!member) return 'Unknown role';
+                                    const identity = playerIdentity(member);
+                                    return identity.alignmentHint
+                                      ? `${identity.role} (${identity.alignmentHint})`
+                                      : identity.role;
+                                  })()}
+                                  )
+                                </span>
                               </span>
                               {m.card === 'fail' ? (
                                 <Badge variant="destructive" className="shrink-0 text-[10px]">

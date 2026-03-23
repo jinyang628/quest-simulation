@@ -2,10 +2,8 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-import type { Player } from '@/lib/quest/constants';
-
 interface RosterProps {
-  players: Player[];
+  players: { id: string; label: string; roleLabel: string }[];
 }
 
 export default function Roster({ players }: RosterProps) {
@@ -25,7 +23,7 @@ export default function Roster({ players }: RosterProps) {
               className="border-border/80 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm"
             >
               <span className="font-medium">{p.label}</span>
-              <span className="text-muted-foreground">{p.name}</span>
+              <span className="text-muted-foreground">{p.roleLabel}</span>
             </li>
           ))}
         </ul>
