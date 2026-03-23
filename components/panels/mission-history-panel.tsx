@@ -6,12 +6,14 @@ import { MissionHistoryEntry } from '@/lib/quest/types';
 interface MissionHistoryPanelProps {
   missionHistory: MissionHistoryEntry[];
   players: Player[];
+  perspectivePlayerId?: string | null;
   getPlayerIdentity: (player: Player) => { role: string; alignmentHint: string | null };
 }
 
 export default function MissionHistoryPanel({
   missionHistory,
   players,
+  perspectivePlayerId,
   getPlayerIdentity,
 }: MissionHistoryPanelProps) {
   return (
@@ -33,6 +35,27 @@ export default function MissionHistoryPanel({
                   key={entry.mission}
                   className="bg-muted/40 border-border/70 space-y-2 rounded-lg border p-3 text-sm"
                 >
+                  {(() => {
+                    const yourTeamMember =
+                      perspectivePlayerId == null
+                        ? null
+                        : (entry.team.find((m) => m.id === perspectivePlayerId) ?? null);
+                    if (!yourTeamMember) return null;
+
+                    const isSuccess = yourTeamMember.card === 'success';
+                    return (
+                      <p className="text-muted-foreground text-xs leading-snug">
+                        <span className="text-foreground/90">Your cast: </span>
+                        {isSuccess ? (
+                          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                            Success
+                          </span>
+                        ) : (
+                          <span className="text-destructive font-medium">Fail</span>
+                        )}
+                      </p>
+                    );
+                  })()}
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-medium">Mission {entry.mission}</span>
                     {entry.passed ? (

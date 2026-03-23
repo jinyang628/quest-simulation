@@ -436,6 +436,7 @@ export default function Simulation() {
           <MissionHistoryPanel
             missionHistory={missionHistory}
             players={players}
+            perspectivePlayerId={perspectivePlayerId}
             getPlayerIdentity={getPlayerIdentity}
           />
         </div>

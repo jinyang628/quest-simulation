@@ -22,8 +22,8 @@ export const PLAYER_CONFIG: Record<
   5: {
     good: 2,
     evil: 3,
-    missionTeamSizes: [3, 2, 3, 4, 3],
-    failsRequired: [1, 1, 1, 2, 1],
+    missionTeamSizes: [2, 3, 2, 4, 3],
+    failsRequired: [1, 1, 1, 1, 1],
   },
   6: {
     good: 3,
