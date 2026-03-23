@@ -151,17 +151,25 @@ export default function TeamSelectionPanel({
                 const badge = (() => {
                   // Tokened behavior overrides allegiance, except for Morgan (ignored token).
                   if (isTokened) {
-                    if (p.name === 'Youth') {
-                      return <Badge variant="destructive">Fail (forced)</Badge>;
-                    }
-                    if (p.name === 'Morgan le Fey') {
-                      return votes[id] === 'fail' ? (
-                        <Badge variant="destructive">Fail (simulated)</Badge>
+                    const forcedCardBadge =
+                      p.name === 'Youth' ? (
+                        <Badge variant="destructive">Fail (forced)</Badge>
+                      ) : p.name === 'Morgan le Fey' ? (
+                        votes[id] === 'fail' ? (
+                          <Badge variant="destructive">Fail (simulated)</Badge>
+                        ) : (
+                          <Badge variant="secondary">Success (simulated)</Badge>
+                        )
                       ) : (
-                        <Badge variant="secondary">Success (simulated)</Badge>
+                        <Badge variant="secondary">Success (forced)</Badge>
                       );
-                    }
-                    return <Badge variant="secondary">Success (forced)</Badge>;
+
+                    return (
+                      <div className="flex flex-col items-end gap-1">
+                        {forcedCardBadge}
+                        <Badge variant="outline">Tokened</Badge>
+                      </div>
+                    );
                   }
 
                   // Non-tokened behavior.
@@ -179,7 +187,10 @@ export default function TeamSelectionPanel({
                     className="border-border/80 flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <div className="font-medium">{p.label}</div>
+                      <div className="flex items-center gap-2 font-medium">
+                        {p.label}
+                        {isTokened ? <Badge variant="outline">Tokened</Badge> : null}
+                      </div>
                       <div className="text-muted-foreground text-xs">
                         {(() => {
                           const identity = getPlayerIdentity(p);

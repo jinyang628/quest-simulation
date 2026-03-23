@@ -91,3 +91,5 @@ export type Player = {
 };
 
 export type MissionSubPhase = 'propose' | 'play' | 'result';
+
+export const PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY = 0.1;

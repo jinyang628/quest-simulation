@@ -1,4 +1,8 @@
-import { ROLE_CATALOG, alignment } from './constants';
+import {
+  PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY,
+  ROLE_CATALOG,
+  alignment,
+} from './constants';
 import type { Alignment, Player, RoleName } from './constants';
 
 const GOOD_SET = new Set<RoleName>(
@@ -105,13 +109,13 @@ export function pickTokenRecipientForMissionLeader({
     case 'Youth':
       return pickOther();
     case 'Loyal Servant': {
-      return Math.random() < 0.1 ? leaderId : pickOther();
+      return Math.random() < PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY ? leaderId : pickOther();
     }
     case 'Cleric': {
       // Cleric: will not token anyone he knows is good.
 
       // 10% chance to token himself.
-      const chooseSelf = Math.random() < 0.1;
+      const chooseSelf = Math.random() < PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY;
       if (chooseSelf) return leaderId;
 
       // Otherwise choose "someone else", but exclude the known-good teammate (if any).
@@ -133,7 +137,7 @@ export function pickTokenRecipientForMissionLeader({
         return pickOther();
       }
       // Any other good role: default to loyal-servant-like behavior.
-      return Math.random() < 0.1 ? leaderId : pickOther();
+      return Math.random() < PROBABILITY_TO_DEVIATE_FROM_DOMINANT_STRATEGY ? leaderId : pickOther();
     }
   }
 }
