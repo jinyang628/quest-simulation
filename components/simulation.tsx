@@ -16,7 +16,6 @@ import { MissionHistoryEntry } from '@/lib/quest/types';
 import {
   alignmentForRole,
   countEvilOnMissionTeam,
-  getTokenRecipientOptionsForMissionLeader,
   isGoodRole,
   pickLeaderForMission,
   pickTokenRecipientForMissionLeader,
@@ -247,6 +246,8 @@ export default function Simulation() {
     const passed = failCount < failsRequired;
     const leaderPlayerResolved =
       currentLeaderId !== null ? (players.find((p) => p.id === currentLeaderId) ?? null) : null;
+    const tokenRecipientResolved =
+      tokenRecipientId !== null ? (players.find((p) => p.id === tokenRecipientId) ?? null) : null;
     const orderedTeamIds =
       currentLeaderId && teamIds.has(currentLeaderId)
         ? [currentLeaderId, ...[...teamIds].filter((id) => id !== currentLeaderId)]
@@ -276,11 +277,18 @@ export default function Simulation() {
               name: leaderPlayerResolved.name,
             }
           : null,
+        tokenRecipient: tokenRecipientResolved
+          ? {
+              id: tokenRecipientResolved.id,
+              label: tokenRecipientResolved.label,
+              name: tokenRecipientResolved.name,
+            }
+          : null,
         team,
       },
     ]);
     setMissionSubPhase('result');
-  }, [players, teamIds, votes, failsRequired, missionIndex, currentLeaderId]);
+  }, [players, teamIds, votes, failsRequired, missionIndex, currentLeaderId, tokenRecipientId]);
 
   const advanceMission = useCallback(() => {
     if (!players) return;

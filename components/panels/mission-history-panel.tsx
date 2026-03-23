@@ -67,6 +67,31 @@ export default function MissionHistoryPanel({
                     )}
                   </p>
                   <p className="text-muted-foreground text-xs leading-snug">
+                    <span className="text-foreground/90">Tokened: </span>
+                    {entry.tokenRecipient ? (
+                      <>
+                        {entry.tokenRecipient.label}
+                        <span className="text-muted-foreground">
+                          {' '}
+                          (
+                          {(() => {
+                            const tokenedPlayer = players.find(
+                              (p) => p.id === entry.tokenRecipient?.id,
+                            );
+                            if (!tokenedPlayer) return 'Unknown role';
+                            const identity = getPlayerIdentity(tokenedPlayer);
+                            return identity.alignmentHint
+                              ? `${identity.role} (${identity.alignmentHint})`
+                              : identity.role;
+                          })()}
+                          )
+                        </span>
+                      </>
+                    ) : (
+                      '—'
+                    )}
+                  </p>
+                  <p className="text-muted-foreground text-xs leading-snug">
                     {entry.successCount} success card{entry.successCount === 1 ? '' : 's'} ·{' '}
                     {entry.failCount} fail card{entry.failCount === 1 ? '' : 's'} · need{' '}
                     {entry.failsRequired} to sabotage
